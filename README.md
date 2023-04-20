@@ -2,6 +2,19 @@
 
 Rust smart contract to swap token on Solana network
 
+## Create and deploy a new token
+
+```bash
+solana config get
+solana config set --url https://api.devnet.solana.com
+solana-keygen new
+solana balance 7UX2i7SucgLMQcfZ75s3VXmZZY4YRUyJN9X1RgfMoDUi
+cargo install spl-token-cli
+spl-token create-token
+spl-token create-account AQoKYV7tYpTrFZN6P5oUufbQKAUr9mNYGe1TTJC9wajM
+spl-token mint tokenAddress mintAmount recipientAddress
+```
+
 ## Smart Contract Address
 
 [Contract address](https://explorer.solana.com/address/4AcRjmAnpb7dS6aAz9EgMw5NPgt9i9Y33hyucnu8etAq?cluster=devnet)  
