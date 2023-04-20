@@ -1,6 +1,4 @@
-use solana_program::{
-    program_error::ProgramError,
-};
+use solana_program::program_error::ProgramError;
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone, Copy)]

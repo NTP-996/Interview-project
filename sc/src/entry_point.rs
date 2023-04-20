@@ -19,8 +19,6 @@ pub fn process_instruction(
     accounts: &[AccountInfo],
     _instruction_data: &[u8],
 ) -> ProgramResult {
-    msg!("Swap Token Rust program entrypoint");
-
     let instruction = SwapInstruction::unpack(_instruction_data)?;
     match instruction {
         SwapInstruction::SolToToken { amount } => {
@@ -135,4 +133,13 @@ fn transfer_token(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
+    }
 }

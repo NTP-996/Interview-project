@@ -1,10 +1,9 @@
 use {
-    crate::error::SampleError,
-    borsh::BorshDeserialize,
-    solana_program::program_error::ProgramError,
+    crate::error::SampleError, borsh::BorshDeserialize, solana_program::program_error::ProgramError,
 };
 
 /// Swap instruction
+#[derive(Debug)]
 pub enum SwapInstruction {
     SolToToken { amount: u64 },
     TokenToSol { amount: u64 },
@@ -25,7 +24,7 @@ impl SwapInstruction {
                 amount: payload.arg1,
             }),
             1 => Ok(Self::TokenToSol {
-                amount: payload.arg1
+                amount: payload.arg1,
             }),
             _ => Err(SampleError::DeserializationFailure.into()),
         }
