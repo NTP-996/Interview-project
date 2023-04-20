@@ -96,100 +96,116 @@ export async function establishConnection(): Promise<any> {
 /**
  * Establish an account to pay for everything
  */
-export async function establishPayer(): Promise<void> {
-  if (!payer) {
-    payer = await getPayer();
+export async function establishPayer(): Promise<any> {
+  try {
+    if (!payer) {
+      payer = await getPayer();
+    }
+
+    let lamports = await connection.getBalance(payer.publicKey);
+
+    console.log(
+      "Using account",
+      payer.publicKey.toBase58(),
+      "containing",
+      lamports / LAMPORTS_PER_SOL,
+      "SOL to pay for fees"
+    );
+
+    return 200;
+  } catch (err) {
+    return err;
   }
-
-  let lamports = await connection.getBalance(payer.publicKey);
-
-  console.log(
-    "Using account",
-    payer.publicKey.toBase58(),
-    "containing",
-    lamports / LAMPORTS_PER_SOL,
-    "SOL to pay for fees"
-  );
 }
 
 /**
  * Check if the solana_test BPF program has been deployed
  */
-export async function checkProgram(): Promise<void> {
-  // Read program id from keypair file
+export async function checkProgram(): Promise<any> {
   try {
-    const programKeypair = await createKeypairFromFile(PROGRAM_KEYPAIR_PATH);
-    programId = programKeypair.publicKey;
-  } catch (err) {
-    const errMsg = (err as Error).message;
-    throw new Error(
-      `Failed to read program keypair at '${PROGRAM_KEYPAIR_PATH}' due to error: ${errMsg}. Program may need to be deployed with \`solana program deploy dist/program/solana_test.so\``
-    );
-  }
-
-  // Check if the program has been deployed
-  const programInfo = await connection.getAccountInfo(programId);
-  if (programInfo === null) {
-    if (fs.existsSync(PROGRAM_SO_PATH)) {
+    // Read program id from keypair file
+    try {
+      const programKeypair = await createKeypairFromFile(PROGRAM_KEYPAIR_PATH);
+      programId = programKeypair.publicKey;
+    } catch (err) {
+      const errMsg = (err as Error).message;
       throw new Error(
-        "Program needs to be deployed with `solana program deploy dist/program/solana_test.so`"
+        `Failed to read program keypair at '${PROGRAM_KEYPAIR_PATH}' due to error: ${errMsg}. Program may need to be deployed with \`solana program deploy dist/program/solana_test.so\``
       );
-    } else {
-      throw new Error("Program needs to be built and deployed");
     }
-  } else if (!programInfo.executable) {
-    throw new Error(`Program is not executable`);
+
+    // Check if the program has been deployed
+    const programInfo = await connection.getAccountInfo(programId);
+    if (programInfo === null) {
+      if (fs.existsSync(PROGRAM_SO_PATH)) {
+        throw new Error(
+          "Program needs to be deployed with `solana program deploy dist/program/solana_test.so`"
+        );
+      } else {
+        throw new Error("Program needs to be built and deployed");
+      }
+    } else if (!programInfo.executable) {
+      throw new Error(`Program is not executable`);
+    }
+    console.log(`Using program ${programId.toBase58()}`);
+    return 200;
+  } catch (error) {
+    return error;
   }
-  console.log(`Using program ${programId.toBase58()}`);
 }
 
-export async function createStoreAccount(): Promise<void> {
-  // Mint
-  mint = new PublicKey("FnzDLQPD8TcE9DmdHnPbDow76ys3HkHeufvrYTF6ijGR");
-  console.log("mint = ", mint.toBase58());
+export async function createStoreAccount(): Promise<any> {
+  try {
+    // Mint
+    mint = new PublicKey("FnzDLQPD8TcE9DmdHnPbDow76ys3HkHeufvrYTF6ijGR");
+    console.log("mint = ", mint.toBase58());
 
-  // Payer Associated Token Account
-  payerAta = (
-    await getOrCreateAssociatedTokenAccount(
+    // Payer Associated Token Account
+    payerAta = (
+      await getOrCreateAssociatedTokenAccount(
+        connection,
+        payer,
+        mint,
+        payer.publicKey,
+        true
+      )
+    ).address;
+    console.log("payerAta = ", payerAta.toBase58());
+
+    // Store
+    const [storeAddress] = await PublicKey.findProgramAddress(
+      [Buffer.from("store"), mint.toBuffer()],
+      programId
+    );
+    store = storeAddress;
+    console.log("store = ", store.toBase58());
+
+    // Store Associated Token Account
+    storeAta = (
+      await getOrCreateAssociatedTokenAccount(
+        connection,
+        payer,
+        mint,
+        store,
+        true
+      )
+    ).address;
+    console.log("storeAta = ", storeAta.toBase58());
+
+    //   Mint to Store 10,000 Token at the beginning
+    let res = await mintTo(
       connection,
       payer,
       mint,
-      payer.publicKey,
-      true
-    )
-  ).address;
-  console.log("payerAta = ", payerAta.toBase58());
-
-  // Store
-  const [storeAddress] = await PublicKey.findProgramAddress(
-    [Buffer.from("store"), mint.toBuffer()],
-    programId
-  );
-  store = storeAddress;
-  console.log("store = ", store.toBase58());
-
-  // Store Associated Token Account
-  storeAta = (
-    await getOrCreateAssociatedTokenAccount(
-      connection,
+      storeAta,
       payer,
-      mint,
-      store,
-      true
-    )
-  ).address;
-  console.log("storeAta = ", storeAta.toBase58());
-
-  //   Mint to Store 10,000 Token at the beginning
-  let res = await mintTo(
-    connection,
-    payer,
-    mint,
-    storeAta,
-    payer,
-    1000 * LAMPORTS_PER_SOL
-  );
-  console.log("res = ", res);
+      1000 * LAMPORTS_PER_SOL
+    );
+    console.log("res = ", res);
+    return 200;
+  } catch (error) {
+    return error;
+  }
 }
 
 /**
@@ -198,7 +214,7 @@ export async function createStoreAccount(): Promise<void> {
 export async function swapToken(
   type: SwapInstruction,
   sending_amount: number
-): Promise<string> {
+): Promise<any> {
   const payload = new Payload({
     id: type,
     amount: sending_amount * LAMPORTS_PER_SOL,
@@ -220,11 +236,17 @@ export async function swapToken(
     data: payloadSerBuf,
   });
 
-  return await sendAndConfirmTransaction(
+  let res = await sendAndConfirmTransaction(
     connection,
     new Transaction().add(instruction),
     [payer]
   );
+
+  if (res) {
+    return 200;
+  } else {
+    return null;
+  }
 }
 
 /**
